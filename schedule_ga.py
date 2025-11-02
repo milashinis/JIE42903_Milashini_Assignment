@@ -4,7 +4,8 @@ import pandas as pd
 # === Load Data ===
 def load_data(path):
     """Load program ratings from CSV file"""
-    return pd.read_csv(path)
+    data = pd.read_csv(path)
+    return data
 
 # === Initialize Population ===
 def init_population(programs, pop_size=10):
@@ -40,12 +41,23 @@ def mutate(schedule, mut_rate):
 
 # === Genetic Algorithm ===
 def genetic_algorithm(data, co_rate=0.8, mut_rate=0.02, generations=50, pop_size=10):
-    """Main GA loop"""
-    programs = list(data['Program'])
-    ratings = dict(zip(data['Program'], data['Rating']))
+    """Main GA loop with flexible column detection"""
 
+    # Detect which column name is used in the dataset
+    if 'Program' in data.columns:
+        program_col = 'Program'
+    elif 'Type of Program' in data.columns:
+        program_col = 'Type of Program'
+    else:
+        raise KeyError("Dataset must contain either 'Program' or 'Type of Program' column.")
+
+    programs = list(data[program_col])
+    ratings = dict(zip(data[program_col], data['Rating']))
+
+    # Initialize population
     population = init_population(programs, pop_size)
 
+    # Evolution loop
     for _ in range(generations):
         new_population = []
         for _ in range(pop_size):
@@ -55,6 +67,8 @@ def genetic_algorithm(data, co_rate=0.8, mut_rate=0.02, generations=50, pop_size
             new_population.append(child)
         population = new_population
 
+    # Get best schedule
     best_schedule = selection(population, ratings)[0]
     best_fitness = fitness(best_schedule, ratings)
+
     return best_schedule, best_fitness
