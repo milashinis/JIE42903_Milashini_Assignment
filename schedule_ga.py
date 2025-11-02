@@ -5,6 +5,7 @@ import pandas as pd
 def load_data(path):
     """Load program ratings from CSV file"""
     data = pd.read_csv(path)
+    print("Columns detected in dataset:", list(data.columns))
     return data
 
 # === Initialize Population ===
@@ -41,23 +42,36 @@ def mutate(schedule, mut_rate):
 
 # === Genetic Algorithm ===
 def genetic_algorithm(data, co_rate=0.8, mut_rate=0.02, generations=50, pop_size=10):
-    """Main GA loop with flexible column detection"""
+    """Main GA loop with robust column detection"""
 
-    # Detect which column name is used in the dataset
-    if 'Program' in data.columns:
-        program_col = 'Program'
-    elif 'Type of Program' in data.columns:
-        program_col = 'Type of Program'
-    else:
-        raise KeyError("Dataset must contain either 'Program' or 'Type of Program' column.")
+    # --- Flexible program column detection ---
+    program_col_candidates = ['Program', 'Type of Program', 'Show', 'Title']
+    program_col = None
+    for col in program_col_candidates:
+        if col in data.columns:
+            program_col = col
+            break
+    if program_col is None:
+        raise KeyError(f"Dataset must contain a program column. Tried: {program_col_candidates}")
 
+    # --- Flexible rating column detection ---
+    rating_col_candidates = ['Rating', 'Ratings', 'Score', 'Popularity']
+    rating_col = None
+    for col in rating_col_candidates:
+        if col in data.columns:
+            rating_col = col
+            break
+    if rating_col is None:
+        raise KeyError(f"Dataset must contain a rating column. Tried: {rating_col_candidates}")
+
+    # --- Prepare programs and ratings dictionary ---
     programs = list(data[program_col])
-    ratings = dict(zip(data[program_col], data['Rating']))
+    ratings = dict(zip(data[program_col], data[rating_col]))
 
-    # Initialize population
+    # --- Initialize population ---
     population = init_population(programs, pop_size)
 
-    # Evolution loop
+    # --- Evolution loop ---
     for _ in range(generations):
         new_population = []
         for _ in range(pop_size):
@@ -67,7 +81,7 @@ def genetic_algorithm(data, co_rate=0.8, mut_rate=0.02, generations=50, pop_size
             new_population.append(child)
         population = new_population
 
-    # Get best schedule
+    # --- Get best schedule ---
     best_schedule = selection(population, ratings)[0]
     best_fitness = fitness(best_schedule, ratings)
 
